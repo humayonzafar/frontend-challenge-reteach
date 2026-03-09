@@ -1,7 +1,7 @@
 <template>
   <AwesomeSection>
     <h2>Users List</h2>
-    <input type="text" placeholder="Search..." v-model="search" />
+    <input type="text" placeholder="Search..." v-model="search" name="search" />
     <ul>
       <li v-for="user in filteredUsers" :key="user.id">
         <NuxtLink :to="`/user/${user.id}`">
@@ -23,12 +23,10 @@ const search = ref('');
 const filteredUsers = computed(() =>
   users
     ? users.value.filter((user) =>
-        user.name.toLowerCase().includes(search.value.toLowerCase())
-      )
+      user.name.toLowerCase().includes(search.value.toLowerCase())
+    )
     : []
 );
 
-const { data: users } = useAsyncData(() =>
-  fetch('https://jsonplaceholder.typicode.com/users').then((res) => res.json())
-);
+const { data: users } = useAsyncData('users', () => $fetch('https://jsonplaceholder.typicode.com/users'));
 </script>

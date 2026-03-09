@@ -71,6 +71,6 @@ const toggleAll = () => {
 .todo-list__item.completed {
   text-decoration: line-through;
   opacity: 0.6;
-    color: #888;  
+  color: #888;  
 }
 </style>

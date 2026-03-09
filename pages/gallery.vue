@@ -4,11 +4,9 @@
     <div v-if="pending">Loading…</div>
     <div v-else-if="error">Error loading images: {{ error.message }}</div>
     <div v-else>
-      <div
-        v-if="Object.keys(sortByUser).length !== 0"
-        v-for="(userGallery, index) in Object.values(sortByUser)"
-        :key="index"
-      >
+      <!-- TODO: extract Object.keys(sortByUser).length check to a computed property and sepreate v-for and v-if from same div -->
+      <div v-if="Object.keys(sortByUser).length !== 0" v-for="(userGallery, index) in Object.values(sortByUser)"
+        :key="index">
         <hr v-if="index !== 0" />
         <h2>{{ userGallery.name }}</h2>
         <p>Albums: {{ userGallery.albums.length }}</p>
@@ -16,7 +14,9 @@
         <p>Comments: {{ userGallery.comments.length }}</p>
         <div class="gallery">
           <template v-for="img in userGallery.photos" :key="img.id">
-            <img :src="img.picture" :alt="img.title" class="photo" />
+
+            <!-- Improvement: eager load first images in viewport, lazy load the rest -->
+            <img :src="img.picture" :alt="img.title" loading="lazy" class="photo" />
           </template>
         </div>
       </div>
@@ -25,28 +25,37 @@
 </template>
 
 <script setup>
-const {
-  data: images,
-  pending,
-  error,
-} = await useFetch('/api/gallery', { lazy: true });
+/**
+ * PROPOSED ARCHITECTURE FOR NEXT ITERATION:
+ *
+ * Current approach loads all users + all their stats + all photos in one request,
+ * which is slow and transfers data the user may never view.
+ *
+ * Recommended change — "load on demand":
+ *
+ * 1. This page becomes a user card grid:
+ *    - /api/gallery returns only users + 1 cover photo each
+ *    - Each card shows the user name, cover photo, and a "View Gallery" button
+ *
+ * 2. On click, navigate to /gallery/[userId] (or open a modal):
+ *    - api fetches full stats + all photos for that user only
+ *    - Stats and photos are only loaded if the user actually views them
+ *
+ * Benefits:
+ * - Initial load: less data transferred, faster time to interactive
+ * - Data transferred: proportional to what's viewed, not everything upfront
+ * - Per-user page/modal is naturally shareable and bookmarkable
+ */
 
-const users = ref([]);
-onMounted(async () => {
-  users.value = await fetch('https://jsonplaceholder.typicode.com/users').then(
-    (res) => res.json()
-  );
-
-  await loadUserStatistics();
-});
+const { data, pending, error } = await useFetch('/api/gallery');
 
 const sortByUser = computed(() => {
-  if (!images.value || !users.value.length) {
-    return {};
-  }
+  if (!data.value) return {};
+  const { photos, users } = data.value;
 
-  return images.value.reduce((acc, img) => {
-    const user = users.value.find((u) => u.id === img.userId);
+  // Can be made cleaner if we reduce by users instead of photos
+  return photos.reduce((acc, img) => {
+    const user = users.find((u) => u.id === img.userId);
     if (!user) {
       return acc;
     }
@@ -64,34 +73,8 @@ const sortByUser = computed(() => {
   }, {});
 });
 
-/**
- * Load specific user statistics
- */
-async function loadUserStatistics() {
-  for (const user of users.value) {
-    (user.albums = []), (user.posts = []), (user.comments = []);
-
-    // Fetch user Albums
-    await fetch(`https://jsonplaceholder.typicode.com/users/${user.id}/albums`)
-      .then((res) => res.json())
-      .then((albums) => user.albums.push(...albums));
-
-    // Fetch user Posts
-    await fetch(`https://jsonplaceholder.typicode.com/users/${user.id}/posts`)
-      .then((res) => res.json())
-      .then((posts) => user.posts.push(...posts));
-
-    // Fetch user Comments
-    await fetch(
-      `https://jsonplaceholder.typicode.com/users/${user.id}/comments`
-    )
-      .then((res) => res.json())
-      .then((comments) => user.comments.push(...comments));
-  }
-}
-
 if (error.value) {
-  console.error('Failed to load images:', error.value);
+  console.error('Failed to load gallery:', error.value);
 }
 </script>
 
@@ -101,11 +84,13 @@ if (error.value) {
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1svw;
 }
+
 .img-gallery {
   display: flex;
   flex-direction: column;
   gap: 10px;
 }
+
 .photo {
   max-width: 100%;
   height: auto;

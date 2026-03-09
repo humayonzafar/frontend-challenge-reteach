@@ -19,16 +19,17 @@
       </select>
     </label>
 
-    <button @click="toggleAll">
+    <button data-testid="toggle-all" @click="toggleAll">
       {{ allSelected ? 'Deselect All' : 'Select All' }}
     </button>
 
-    <ul class="todo-list">
+    <ul class="todo-list" data-testid="todo-list">
       <li v-for="todo in filteredTodos" class="todo-list__item" :key="todo.id"
         :class="todo.completed ? 'completed' : 'pending'"
+        :data-testid="`todo-item-${todo.id}`"
         @click="todo.completed = !todo.completed">
         <h4>{{ todo.title }}</h4>
-        <p>Status: {{ todo.completed ? 'Completed' : 'Pending' }}</p>
+        <p data-testid="todo-status">Status: {{ todo.completed ? 'Completed' : 'Pending' }}</p>
       </li>
     </ul>
   </AwesomeArticle>
@@ -46,7 +47,7 @@ const { data: todos } = await useAsyncData(`todos-${userId}`, () =>
 const allSelected = computed(() => todos.value?.every(t => t.completed));
 
 // Improvements: 
-// TODO: add completed/pendign filtering to computed property instead of relying on CSS to hide/show items
+// TODO: add completed/pending filtering to computed property instead of relying on CSS to hide/show items
 // TODO: add count of completed/pending items currently shown based on filters
 const filteredTodos = computed(() => todos.value?.slice(0, limit.value));
 const toggleAll = () => {
@@ -68,6 +69,7 @@ const toggleAll = () => {
   cursor: pointer;
   width: fit-content;
 }
+
 .todo-list__item.completed {
   text-decoration: line-through;
   opacity: 0.6;

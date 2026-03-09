@@ -53,7 +53,10 @@ const sortByUser = computed(() => {
   if (!data.value) return {};
   const { photos, users } = data.value;
 
-  // Can be made cleaner if we reduce by users instead of photos
+  // Improvement TODO: 
+  // Can be made cleaner if we reduce by users instead of photos and 
+  // and can be made siginficanltyy faster by grouping photos by userId first to avoid nested find() calls
+  // Object.groupBy(photos, photo => photo.userId)
   return photos.reduce((acc, img) => {
     const user = users.find((u) => u.id === img.userId);
     if (!user) {

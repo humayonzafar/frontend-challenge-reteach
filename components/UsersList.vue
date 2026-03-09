@@ -18,15 +18,19 @@
 <script setup>
 import { useAsyncData } from 'nuxt/app';
 
+// Improvements:
+// TODO: Use refDebounced (@vueuse/core) to debounce search and avoid filtering on every keystroke.
+// TODO: Normalize user data once after fetch (toLowerCase()) to avoid redundant string operations on every filter call
+
 const search = ref('');
-
-const filteredUsers = computed(() =>
-  users
-    ? users.value.filter((user) =>
-      user.name.toLowerCase().includes(search.value.toLowerCase())
-    )
-    : []
-);
-
 const { data: users } = useAsyncData('users', () => $fetch('https://jsonplaceholder.typicode.com/users'));
+
+const filteredUsers = computed(() => {
+  const searchValue = search.value.trim().toLowerCase();
+  return users.value?.filter((user) => {
+    return (user.name?.toLowerCase().includes(searchValue) ||
+      user.username?.toLowerCase().includes(searchValue) ||
+      user.email?.toLowerCase().includes(searchValue));
+  }) ?? [];
+})
 </script>
